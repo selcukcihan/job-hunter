@@ -1,4 +1,4 @@
-import { PrismaClient } from './generated/prisma/client';
+import { PrismaClient, Job } from './generated/prisma/client';
 import { Company } from '../companies';
 
 export interface JobWithoutCrawlResult {
@@ -55,6 +55,26 @@ export const storeJobs = async (prisma: PrismaClient, company: Company, jobs: Jo
 				createdAt: job.createdAt,
 				updatedAt: job.updatedAt,
 			})),
+		});
+	}
+};
+
+export const markJobsAsEmailed = async (prisma: PrismaClient, jobs: Job[]) => {
+	const now = new Date();
+	const batchSize = 50;
+	// I was getting "The query parameter limit supported by your database is exceeded." when not batching, so we're batching.
+	for (let i = 0; i < jobs.length; i += batchSize) {
+		const batch = jobs.slice(i, i + batchSize);
+		await prisma.job.updateMany({
+			where: {
+				url: {
+					in: batch.map((job) => job.url),
+				},
+			},
+			data: {
+				emailedAt: now,
+				updatedAt: now,
+			},
 		});
 	}
 };

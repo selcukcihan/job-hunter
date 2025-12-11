@@ -10,12 +10,13 @@
   "compatibility_flags": [
 		"nodejs_compat_v2"
   ],
+	"workers_dev": false,
 	"observability": {
 		"enabled": true
 	},
 	"triggers": {
 		"crons": [
-			"* * * * *"
+			"0 18 * * 6"
 		]
 	},
 	"workflows": [
@@ -30,6 +31,6 @@
 			"binding": "DB",
 			"database_name": "job_hunter",
 			"database_id": "7a6a3a63-15f0-4725-be25-82eb0935518b"
-		}
+		},
 	],
 }

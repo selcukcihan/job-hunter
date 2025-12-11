@@ -1,6 +1,14 @@
 import Mailgun from 'mailgun.js';
 import { Job } from './generated/prisma/client';
 import { Company } from '../companies';
+import {
+	NO_JOBS_TEXT,
+	NO_JOBS_HTML,
+	JOBS_EMAIL_HEADER_TEXT,
+	JOBS_EMAIL_INTRO_TEXT,
+	JOBS_EMAIL_HTML_START,
+	JOBS_EMAIL_HTML_END,
+} from './email-templates';
 
 export const sendEmail = async (to: string, subject: string, text: string, html: string, mailgunApiKey: string) => {
 	const mailgun = new Mailgun(FormData);
@@ -23,6 +31,11 @@ export const sendEmail = async (to: string, subject: string, text: string, html:
 };
 
 export const formatEmail = (jobs: Job[], companies: Company[]) => {
+	// Handle the case when there are no new jobs
+	if (jobs.length === 0) {
+		return { text: NO_JOBS_TEXT, html: NO_JOBS_HTML };
+	}
+
 	// Create a map of company name to Company object for quick lookup
 	const companyMap = new Map<string, Company>();
 	for (const company of companies) {
@@ -42,103 +55,11 @@ export const formatEmail = (jobs: Job[], companies: Company[]) => {
 	const sortedCompanyNames = Array.from(jobsByCompany.keys()).sort();
 
 	// Build text email content
-	let emailContent = 'Welcome to your weekly job digest! 🎉\n\n';
-	emailContent += 'Here are the latest engineering opportunities we found for you:\n\n';
+	let emailContent = JOBS_EMAIL_HEADER_TEXT;
+	emailContent += JOBS_EMAIL_INTRO_TEXT;
 
 	// Build HTML email content
-	let htmlContent = `
-<!DOCTYPE html>
-<html>
-<head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<style>
-		body {
-			font-family: 'Courier New', 'Monaco', 'Menlo', monospace;
-			margin: 0;
-			padding: 20px;
-			line-height: 1.6;
-			color: #333333;
-		}
-		.container {
-			max-width: 800px;
-			margin: 0 auto;
-			border: 1px solid #e0e0e0;
-			border-radius: 6px;
-			padding: 30px;
-		}
-		.header {
-			border-bottom: 2px solid #333333;
-			padding-bottom: 20px;
-			margin-bottom: 30px;
-		}
-		.header h1 {
-			margin: 0;
-			color: #0066cc;
-			font-size: 24px;
-			font-weight: normal;
-		}
-		.header p {
-			margin: 10px 0 0 0;
-			color: #666666;
-			font-size: 14px;
-		}
-		.company-section {
-			margin-bottom: 30px;
-		}
-		.company-header {
-			color: #cc6600;
-			font-size: 18px;
-			margin-bottom: 10px;
-			font-weight: bold;
-		}
-		.company-url {
-			color: #0066cc;
-			font-size: 12px;
-			text-decoration: none;
-			margin-left: 10px;
-		}
-		.company-url:hover {
-			text-decoration: underline;
-		}
-		.separator {
-			border-top: 1px solid #cccccc;
-			margin: 10px 0 15px 0;
-		}
-		.job-list {
-			list-style: none;
-			padding: 0;
-			margin: 0;
-		}
-		.job-item {
-			margin-bottom: 12px;
-			padding-left: 20px;
-			position: relative;
-		}
-		.job-item::before {
-			content: '▸';
-			position: absolute;
-			left: 0;
-			color: #0066cc;
-		}
-		.job-link {
-			color: #0066cc;
-			text-decoration: none;
-			font-size: 14px;
-		}
-		.job-link:hover {
-			color: #004499;
-			text-decoration: underline;
-		}
-	</style>
-</head>
-<body>
-	<div class="container">
-		<div class="header">
-			<h1>Welcome to your weekly job digest! 🎉</h1>
-			<p>Here are the latest engineering opportunities we found for you:</p>
-		</div>
-`;
+	let htmlContent = JOBS_EMAIL_HTML_START;
 
 	// Process each company
 	for (const companyName of sortedCompanyNames) {
@@ -179,11 +100,7 @@ export const formatEmail = (jobs: Job[], companies: Company[]) => {
 		htmlContent += '		</div>\n';
 	}
 
-	htmlContent += `
-	</div>
-</body>
-</html>
-`;
+	htmlContent += JOBS_EMAIL_HTML_END;
 
 	return { text: emailContent, html: htmlContent };
 };

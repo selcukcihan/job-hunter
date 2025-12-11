@@ -20,7 +20,6 @@ Do you think this tool would help me find my next job? How do you think abou thi
 3. Based on the title of the job link, the crawler should decide whether we should take it or leave it
 4. If the link was already processed, no need to process again
 5. Crawler runs once a week
-6. 
 
 ### Crawler
 
@@ -70,16 +69,11 @@ Do you think this tool would help me find my next job? How do you think abou thi
 
 ### Database
 
-Cloudflare D1 (sqlite)
+* Cloudflare D1 (sqlite)
+* No support for transactions
+* You can query local db with `npx wrangler d1 execute job_hunter --command "select * from job;" --local`
 
-table crawl
-
-- company
-- url
-- title
-- createdAt
-
-### Prisma
+#### Prisma
 
 Create initial migration
 

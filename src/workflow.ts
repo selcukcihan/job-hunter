@@ -3,7 +3,7 @@ import { Companies, Company } from '../companies';
 import { PrismaClient } from './generated/prisma/client';
 import { PrismaD1 } from '@prisma/adapter-d1';
 import { scrapeJobs } from './browser';
-import { getJobsThatHaveNotBeenEmailed, JobWithoutCrawlResult, storeCrawlResult, storeJobs } from './data';
+import { getJobsThatHaveNotBeenEmailed, JobWithoutCrawlResult, storeCrawlResult, storeJobs, markJobsAsEmailed } from './data';
 import { formatEmail, sendEmail } from './email';
 
 const stepConfig: WorkflowStepConfig = {
@@ -16,7 +16,7 @@ const stepConfig: WorkflowStepConfig = {
 };
 
 export default class CrawlerWorkflow extends WorkflowEntrypoint<Env, Params> {
-	async crawlCompany(prisma: PrismaClient, step: WorkflowStep, company: Company) {
+	async crawlCompany(prisma: PrismaClient, step: WorkflowStep, company: Company, index: number) {
 		console.log('Crawling company: ', company.name);
 		let jobs: JobWithoutCrawlResult[] = [];
 		let response: any = null;
@@ -33,23 +33,26 @@ export default class CrawlerWorkflow extends WorkflowEntrypoint<Env, Params> {
 			);
 			await step.do(`store jobs for company ${company.name}`, () => storeJobs(prisma, company, jobs, crawlResultId));
 		}
-		await step.sleep('wait for rate limit', '10 seconds');
+		await step.sleep(`wait for rate limit ${index}`, '10 seconds');
 		console.log('CrawlerWorkflow finished company: ', company.name);
 	}
 
 	async sendEmail(prisma: PrismaClient) {
 		const jobs = await getJobsThatHaveNotBeenEmailed(prisma);
 		const { text, html } = formatEmail(jobs, Companies);
-		const title = `Found ${jobs.length} new jobs for you`;
+		const title = jobs.length === 0 ? "No new jobs this week, but don't fret!" : `Found ${jobs.length} new jobs for you`;
 		await sendEmail('selcukcihan+jobhunter@gmail.com', title, text, html, this.env.MAILGUN_API_KEY);
+		console.log('Marking jobs as emailed');
+		await markJobsAsEmailed(prisma, jobs);
 	}
 
 	async run(event: Readonly<WorkflowEvent<Params>>, step: WorkflowStep) {
 		console.log('CrawlerWorkflow started');
 		const adapter = new PrismaD1(this.env.DB);
 		const prisma = new PrismaClient({ adapter });
-		for (const company of Companies) {
-			// await this.crawlCompany(prisma, step, company);
+		for (let index = 0; index < Companies.length; index++) {
+			const company = Companies[index];
+			await this.crawlCompany(prisma, step, company, index);
 		}
 		await step.do(`send email`, () => this.sendEmail(prisma));
 		console.log('CrawlerWorkflow finished');
