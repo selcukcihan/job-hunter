@@ -1,0 +1,31 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+  runtime  = "workerd"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Job {
+  url           String      @id
+  title         String
+  company       String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  emailedAt     DateTime?
+  crawlResult   CrawlResult @relation(fields: [crawlResultId], references: [id])
+  crawlResultId Int
+}
+
+model CrawlResult {
+  id        Int      @id @default(autoincrement())
+  url       String
+  response  Json
+  createdAt DateTime @default(now())
+  jobs      Job[]
+}
