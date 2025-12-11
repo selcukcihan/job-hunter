@@ -8,11 +8,11 @@ import { formatEmail, sendEmail } from './email';
 
 const stepConfig: WorkflowStepConfig = {
 	retries: {
-		limit: 2,
-		delay: 20000,
+		limit: 1,
+		delay: 60000,
 		backoff: 'constant',
 	},
-	timeout: '60 seconds',
+	timeout: '600 seconds',
 };
 
 export default class CrawlerWorkflow extends WorkflowEntrypoint<Env, Params> {
@@ -33,7 +33,7 @@ export default class CrawlerWorkflow extends WorkflowEntrypoint<Env, Params> {
 			);
 			await step.do(`store jobs for company ${company.name}`, () => storeJobs(prisma, company, jobs, crawlResultId));
 		}
-		await step.sleep(`wait for rate limit ${index}`, '10 seconds');
+		await step.sleep(`wait for rate limit ${index}`, '20 seconds');
 		console.log('CrawlerWorkflow finished company: ', company.name);
 	}
 
